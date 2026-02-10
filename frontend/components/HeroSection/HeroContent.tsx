@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 const HeroContent = () => {
   return (
     <section className="relative flex flex-col items-center justify-center min-h-[60vh] py-16 px-4 text-center overflow-hidden">
@@ -18,9 +20,11 @@ const HeroContent = () => {
       </h1>
 
       <div className="flex flex-row gap-6 mt-8 justify-center">
-        <button className="px-8 py-3 rounded-full font-semibold text-lg shadow transition focus:outline-none bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
-          Get Started
-        </button>
+        <Link href="/dashboard">
+          <button className="px-8 py-3 rounded-full font-semibold text-lg shadow transition focus:outline-none bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
+            Get Started
+          </button>
+        </Link>
       </div>
     </section>
   );

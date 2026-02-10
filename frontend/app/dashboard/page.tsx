@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import LogoutButton from "@/components/LogoutButtom/LogoutButton";
+import Loader from "@/components/Loader";
 
 const Dashboard = () => {
   const router = useRouter();
@@ -20,7 +21,7 @@ const Dashboard = () => {
     checkAuth();
   }, [router]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Loader />;
   return (
     <div>
       <LogoutButton />

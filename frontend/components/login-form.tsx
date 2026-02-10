@@ -40,7 +40,7 @@ export function LoginForm({
     if (error) {
       setError(error.message);
     } else {
-      router.push("/dashboard"); 
+      router.push("/dashboard");
     }
   };
   return (
@@ -52,7 +52,7 @@ export function LoginForm({
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
                 <p className="text-muted-foreground text-balance">
-                  Login to your Acme Inc account
+                  Login to your Clarity account
                 </p>
               </div>
               <Field>
@@ -60,7 +60,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="ram@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -99,9 +99,6 @@ export function LoginForm({
                   <span>Login with Google</span>
                 </Button>
               </Field>
-              <FieldDescription className="text-center">
-                Don&apos;t have an account? <a href="/signup">Sign up</a>
-              </FieldDescription>
             </FieldGroup>
           </form>
           <div className="bg-muted relative hidden md:block">

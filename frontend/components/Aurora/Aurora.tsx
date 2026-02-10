@@ -116,6 +116,7 @@ interface AuroraProps {
   blend?: number;
   time?: number;
   speed?: number;
+  className?: string;
 }
 
 export default function Aurora(props: AuroraProps) {
@@ -128,6 +129,8 @@ export default function Aurora(props: AuroraProps) {
   propsRef.current = props;
 
   const ctnDom = useRef<HTMLDivElement>(null);
+
+  const { className, ...restProps } = props;
 
   useEffect(() => {
     const ctn = ctnDom.current;
@@ -212,5 +215,5 @@ export default function Aurora(props: AuroraProps) {
     };
   }, [amplitude]);
 
-  return <div ref={ctnDom} className="aurora-container" />;
+  return <div ref={ctnDom} className={`aurora-container ${className ?? ""}`} />;
 }

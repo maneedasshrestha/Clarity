@@ -117,7 +117,7 @@ export function SignupForm({
                   </Field>
                 </Field>
                 <FieldDescription>
-                  Must be at least 8 characters long.
+                  Must be at least 6 characters long.
                 </FieldDescription>
               </Field>
               <Field>
@@ -136,9 +136,6 @@ export function SignupForm({
                   <span>Sign up with Google</span>
                 </Button>
               </Field>
-              <FieldDescription className="text-center">
-                Already have an account? <a href="/login">Sign in</a>
-              </FieldDescription>
             </FieldGroup>
           </form>
           <div className="bg-muted relative hidden md:block">
