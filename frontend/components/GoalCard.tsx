@@ -6,12 +6,11 @@ import { MoreVertical, Plus } from "lucide-react";
 
 interface Goal {
   id: string;
-  emoji: string;
   title: string;
   targetAmount: number;
   currentAmount: number;
-  targetDate: string; // ISO string
-  color: string; // e.g. "#4F46E5"
+  targetDate: string;
+  color: string;
 }
 
 interface GoalCardProps {
@@ -43,21 +42,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       className="relative p-5 flex flex-col gap-3 border-2"
       style={{ borderColor: goal.color }}
     >
-      <div className="flex justify-between items-start">
-        <div
-          className="rounded-xl p-3 text-4xl"
-          style={{ background: goal.color + "22" }}
-        >
-          {goal.emoji}
-        </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => onEdit?.(goal.id)}
-        >
-          <MoreVertical className="w-5 h-5" />
-        </Button>
-      </div>
+      <div className="flex justify-between items-start"></div>
       <div className="flex flex-col items-center gap-1">
         <div className="font-bold text-lg text-center">{goal.title}</div>
         <div className="text-xs text-muted-foreground">
@@ -67,7 +52,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       <div className="w-full flex flex-col gap-1">
         <div className="w-full h-4 bg-neutral-200 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${progress >= 0.9 ? "bg-gradient-to-r from-yellow-400 to-green-400" : ""}`}
+            className={`h-full rounded-full transition-all duration-500 ${progress >= 0.9 ? "bg-linear-to-r from-yellow-400 to-green-400" : ""}`}
             style={{
               width: `${progress * 100}%`,
               background: progress < 0.9 ? goal.color : undefined,
@@ -75,7 +60,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
           />
         </div>
         <div className="text-xs font-semibold text-center mt-1">
-          ${goal.currentAmount.toLocaleString()} / $
+          रु{goal.currentAmount.toLocaleString()} / रु
           {goal.targetAmount.toLocaleString()} ({Math.round(progress * 100)}%)
         </div>
       </div>
@@ -89,20 +74,80 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         </Button>
       </div>
       {showAdd && (
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-          <div className="bg-white dark:bg-neutral-900 p-4 rounded-xl shadow-lg flex flex-col gap-2 min-w-[220px]">
-            <div className="font-semibold text-sm mb-1">Add to fund</div>
-            <input
-              type="number"
-              min="1"
-              className="border rounded px-2 py-1 mb-2"
-              placeholder="Amount"
-              value={addAmount}
-              onChange={(e) => setAddAmount(e.target.value)}
-            />
-            <div className="flex gap-2">
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20 animate-fade-in">
+          <div
+            className="relative bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-2xl flex flex-col gap-4 w-full max-w-xs border border-neutral-200 dark:border-neutral-800 focus:outline-none"
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              className="absolute top-3 right-3 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
+              aria-label="Close"
+              onClick={() => setShowAdd(false)}
+              tabIndex={0}
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M18 6L6 18M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <div className="font-bold text-lg text-center mb-1">
+              Add to Fund
+            </div>
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="add-amount"
+                className="text-xs font-medium text-neutral-600 dark:text-neutral-300 mb-1"
+              >
+                Amount
+              </label>
+              <input
+                id="add-amount"
+                type="number"
+                min="1"
+                inputMode="numeric"
+                autoFocus
+                className="w-full border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition mb-1 bg-neutral-50 dark:bg-neutral-800 placeholder:text-neutral-400"
+                placeholder="Enter amount (रु)"
+                value={addAmount}
+                onChange={(e) =>
+                  setAddAmount(e.target.value.replace(/[^0-9]/g, ""))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && addAmount && Number(addAmount) > 0) {
+                    onAddMoney(goal.id, Number(addAmount));
+                    setShowAdd(false);
+                    setAddAmount("");
+                  }
+                }}
+              />
+              {/* Quick add buttons */}
+              <div className="flex flex-wrap gap-2 mt-1 w-full">
+                {[1000, 5000, 10000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className={`px-3 py-1 rounded-lg border text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-primary-400 dark:border-neutral-700 border-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-green-100 dark:hover:bg-green-900 ${addAmount === amt.toString() ? "ring-2 ring-green-400 border-green-400" : ""}`}
+                    style={{ minWidth: 0, flex: "1 1 30%" }}
+                    onClick={() => setAddAmount(amt.toString())}
+                  >
+                    रु{amt.toLocaleString()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
               <Button
                 size="sm"
+                className="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg shadow-sm transition disabled:opacity-60"
                 onClick={() => {
                   onAddMoney(goal.id, Number(addAmount));
                   setShowAdd(false);
@@ -114,7 +159,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               </Button>
               <Button
                 size="sm"
-                variant="ghost"
+                variant="outline"
+                className="flex-1 rounded-lg border-neutral-300 dark:border-neutral-700"
                 onClick={() => setShowAdd(false)}
               >
                 Cancel

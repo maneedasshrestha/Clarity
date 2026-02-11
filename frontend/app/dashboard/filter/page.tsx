@@ -1,9 +1,9 @@
-import React from 'react'
+import GoalPageLayout from '@/components/GoalPage/GoalPageLayout'
 
-const FilterPage = () => {
+const GoalPage = () => {
   return (
-    <div>FilterPage</div>
+    <GoalPageLayout/>
   )
 }
 
-export default FilterPage
+export default GoalPage
