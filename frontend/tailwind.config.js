@@ -8,7 +8,15 @@ module.exports = {
     "./lib/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        brand: {
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          strong: "rgb(var(--brand-strong) / <alpha-value>)",
+          medium: "rgb(var(--brand-medium) / <alpha-value>)",
+        },
+      },
+    },
   },
   plugins: [],
 };

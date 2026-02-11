@@ -1,5 +1,7 @@
 html,
 body {
+  margin: 0;
+  padding: 0;
   height: 100%;
 }
 @import "tailwindcss";
@@ -52,6 +54,9 @@ body {
 }
 
 :root {
+  --brand: 65 105 225; /* Royal Blue */
+  --brand-strong: 39 64 139;
+  --brand-medium: 90 127 231;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -84,6 +89,7 @@ body {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --profile-bg: #fff;
 }
 
 .dark {
@@ -118,6 +124,7 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --profile-bg: #fff;
 }
 
 @layer base {
