@@ -1,6 +1,14 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { format, subDays } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const EXPENSE_CATEGORIES = [
   { label: "Food", icon: "🍔" },
@@ -20,6 +28,8 @@ const NewPage = () => {
   const [recurring, setRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
   const amountInputRef = useRef<HTMLInputElement>(null);
+
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     amountInputRef.current?.focus();
@@ -66,6 +76,8 @@ const NewPage = () => {
     mode === "expense"
       ? "bg-red-500 hover:bg-red-600"
       : "bg-green-500 hover:bg-green-600";
+
+  const parsedDate = date ? new Date(date) : undefined;
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 px-4 md:px-8 lg:px-16 py-8 pb-32">
@@ -133,12 +145,36 @@ const NewPage = () => {
                   Today
                 </button>
               </div>
-              <input
-                type="date"
-                className="w-full px-3 mt-2 py-2 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal mt-2",
+                      !date && "text-muted-foreground",
+                    )}
+                  >
+                    {date ? (
+                      format(new Date(date), "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={parsedDate}
+                    onSelect={(selected) => {
+                      if (selected) {
+                        setDate(format(selected, "yyyy-MM-dd"));
+                        setCalendarOpen(false);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
