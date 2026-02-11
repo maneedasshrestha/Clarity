@@ -2,19 +2,20 @@
 import {
   MobileNav,
   Navbar,
-  NavbarButton,
   NavbarLogo,
   NavBody,
 } from "@/components/Navbar/resizable-navbar";
 import ThemeToggle from "@/components/Theme/ThemeToggle";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import LogoutButton from "@/components/LogoutButtom/LogoutButton";
 import { User } from "@supabase/supabase-js";
 import { useMediaQuery } from "react-responsive";
 
 const MainNavbar = () => {
   const isDesktop = useMediaQuery({ minWidth: 1024 });
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
     const getUser = async () => {
@@ -34,6 +35,7 @@ const MainNavbar = () => {
     };
   }, []);
 
+  if (!mounted) return null;
   return (
     <div className="mx-4 w-full">
       <Navbar>
