@@ -1,9 +1,7 @@
-import React from 'react'
+import NewPage from "@/components/NewPage/NewPage";
 
-const NewPage = () => {
-  return (
-    <div>NewPage</div>
-  )
-}
+const page = () => {
+  return <NewPage />;
+};
 
-export default NewPage
+export default page;
