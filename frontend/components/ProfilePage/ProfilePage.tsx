@@ -18,7 +18,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 }) => {
   return (
     <div
-      className="flex items-center justify-center p-4"
+      className="flex justify-center "
       style={{
         background: "var(--background)",
         color: "var(--foreground)",
@@ -31,7 +31,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           color: "var(--card-foreground)",
         }}
       >
-        <div className="relative h-52 overflow-hidden">
+        <div className="relative h-60 overflow-hidden">
           <Aurora
             colorStops={["#0612bc", "#0f30d7", "#3e2a8d"]}
             amplitude={0.9}

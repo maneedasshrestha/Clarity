@@ -1,5 +1,7 @@
+import WalletPageAnalytics from "@/components/WalletPage/WalletPageAnalytics";
+
 const WalletPage = () => {
-  return <div>WalletPage</div>;
+  return <WalletPageAnalytics />;
 };
 
 export default WalletPage;

@@ -45,7 +45,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
   return (
     <motion.div
       className={cn(
-        "fixed inset-x-0 top-10 z-40 max-w-4xl mx-auto w-full glassmorphism p-3 rounded-4xl",
+        "fixed inset-x-0 top-10 z-40 max-w-4xl mx-auto w-full p-3 rounded-4xl bg-white/50 backdrop-blur-md border-2",
         className,
       )}
     >
