@@ -3,6 +3,7 @@ const {
   createGoal,
   addMoneyToGoal,
   supabase,
+  getAuthenticatedClient,
 } = require("../services/supabaseService");
 const { validationResult } = require("express-validator");
 
@@ -92,7 +93,9 @@ const updateGoal = async (req, res, next) => {
     const { title, target_amount, target_date, color } = req.body;
 
     // Verify goal belongs to user
-    const { data: existingGoal, error: fetchError } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: existingGoal, error: fetchError } = await authClient
       .from("goals")
       .select("*")
       .eq("id", id)
@@ -123,7 +126,7 @@ const updateGoal = async (req, res, next) => {
       updateData.completed_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await authClient
       .from("goals")
       .update(updateData)
       .eq("id", id)
@@ -151,7 +154,9 @@ const deleteGoal = async (req, res, next) => {
     const { id } = req.params;
 
     // This will also delete all related goal_transactions due to CASCADE
-    const { error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { error } = await authClient
       .from("goals")
       .delete()
       .eq("id", id)
@@ -184,7 +189,9 @@ const addMoneyToGoalHandler = async (req, res, next) => {
     }
 
     // Verify goal exists and belongs to user
-    const { data: goal, error: goalError } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: goal, error: goalError } = await authClient
       .from("goals")
       .select("*")
       .eq("id", id)
@@ -213,7 +220,7 @@ const addMoneyToGoalHandler = async (req, res, next) => {
     );
 
     // Get updated goal data
-    const { data: updatedGoal } = await supabase
+    const { data: updatedGoal } = await authClient
       .from("goals")
       .select("*")
       .eq("id", id)
@@ -243,7 +250,9 @@ const getGoalHistory = async (req, res, next) => {
     const { id } = req.params;
 
     // Verify goal belongs to user
-    const { data: goal, error: goalError } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: goal, error: goalError } = await authClient
       .from("goals")
       .select("id")
       .eq("id", id)
@@ -257,7 +266,7 @@ const getGoalHistory = async (req, res, next) => {
       });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await authClient
       .from("goal_transactions")
       .select("*")
       .eq("goal_id", id)

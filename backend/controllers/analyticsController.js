@@ -1,4 +1,4 @@
-const { getUserOverview, supabase } = require("../services/supabaseService");
+const { getUserOverview, supabase, getAuthenticatedClient } = require("../services/supabaseService");
 
 const getDashboardOverview = async (req, res, next) => {
   try {
@@ -9,13 +9,33 @@ const getDashboardOverview = async (req, res, next) => {
     const targetYear = year ? parseInt(year) : date.getFullYear();
 
     const monthDate = new Date(targetYear, targetMonth - 1, 1);
+    
+    // Calculate previous month for trend comparison
+    const previousMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+    const previousYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+    const previousMonthDate = new Date(previousYear, previousMonth - 1, 1);
 
     const token = req.headers.authorization?.split(" ")[1];
+    
+    // Fetch current month overview
     const overview = await getUserOverview(req.userId, monthDate, token);
+    
+    // Fetch previous month overview for trend comparison
+    const previousOverview = await getUserOverview(req.userId, previousMonthDate, token);
+
+    // Combine the data
+    const responseData = {
+      ...overview,
+      previous_totals: previousOverview.totals || {
+        income: 0,
+        expenses: 0,
+        net_amount: 0
+      }
+    };
 
     res.json({
       success: true,
-      data: overview,
+      data: responseData,
     });
   } catch (error) {
     next(error);
@@ -48,7 +68,9 @@ const getSpendingTrends = async (req, res, next) => {
       groupByFormat = "DD";
     }
 
-    const { data, error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data, error } = await authClient
       .from("transactions")
       .select("amount, date, type")
       .eq("user_id", req.userId)
@@ -83,14 +105,33 @@ const getSpendingTrends = async (req, res, next) => {
       }
     });
 
-    // Fill in missing periods with zero values
+    // Fill in missing periods with zero values (only up to current date for current month)
     const result = [];
-    const maxPeriods =
-      period === "year" ? 12 : period === "month" ? endDate.getDate() : 30;
+    let maxPeriods;
+    const today = new Date();
+    
+    if (period === "year") {
+      maxPeriods = 12;
+    } else if (period === "month") {
+      const targetYear = year ? parseInt(year) : today.getFullYear();
+      const targetMonth = month ? parseInt(month) : today.getMonth() + 1;
+      const isCurrentMonth = targetYear === today.getFullYear() && targetMonth === (today.getMonth() + 1);
+      
+      if (isCurrentMonth) {
+        // For current month, only show data up to today
+        maxPeriods = today.getDate();
+      } else {
+        // For past/future months, show all days
+        maxPeriods = endDate.getDate();
+      }
+    } else {
+      maxPeriods = 30;
+    }
 
     for (let i = 1; i <= maxPeriods; i++) {
       result.push({
         period: i,
+        day: i, // Add day property for compatibility
         income: groupedData[i]?.income || 0,
         expense: groupedData[i]?.expense || 0,
         net: (groupedData[i]?.income || 0) - (groupedData[i]?.expense || 0),
@@ -128,7 +169,9 @@ const getCategoryBreakdown = async (req, res, next) => {
 
     const end = endDate || new Date().toISOString().split("T")[0];
 
-    const { data, error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data, error } = await authClient
       .from("transactions")
       .select(
         `
@@ -189,7 +232,9 @@ const getMonthlySummary = async (req, res, next) => {
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - parseInt(months));
 
-    const { data, error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data, error } = await authClient
       .from("transactions")
       .select("amount, type, date")
       .eq("user_id", req.userId)
@@ -265,7 +310,9 @@ const getFinancialInsights = async (req, res, next) => {
     );
 
     // Get current month data
-    const { data: currentMonthData, error: currentError } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: currentMonthData, error: currentError } = await authClient
       .from("transactions")
       .select("amount, type, category_name")
       .eq("user_id", req.userId)
@@ -275,7 +322,7 @@ const getFinancialInsights = async (req, res, next) => {
     if (currentError) throw currentError;
 
     // Get last month data
-    const { data: lastMonthData, error: lastError } = await supabase
+    const { data: lastMonthData, error: lastError } = await authClient
       .from("transactions")
       .select("amount, type, category_name")
       .eq("user_id", req.userId)

@@ -1,8 +1,10 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { GoalCard } from "@/components/GoalCard";
 import Confetti from "@/components/Confetti";
 import ColorPicker from "@/components/ColorPicker";
+import Loader from "@/components/Loader";
+import { apiClient, Goal } from "@/lib/api";
 
 import { format, differenceInDays, parse, addYears } from "date-fns";
 import {
@@ -12,29 +14,12 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-const initialGoals = [
-  {
-    id: "1",
-    title: "Tesla Model 3",
-    targetAmount: 40000,
-    currentAmount: 15000,
-    targetDate: "2026-12-01",
-    color: "#3B82F6",
-  },
-  {
-    id: "2",
-    title: "Dream House",
-    targetAmount: 100000,
-    currentAmount: 95000,
-    targetDate: "2027-06-01",
-    color: "#22C55E",
-  },
-];
-
 const GoalPageLayout = () => {
-  const [goals, setGoals] = useState(initialGoals);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [confettiGoalId, setConfettiGoalId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState({
     title: "",
     targetAmount: 0,
@@ -43,52 +28,112 @@ const GoalPageLayout = () => {
     color: "#3B82F6",
   });
 
-  const handleAddMoney = (goalId: string, amount: number) => {
-    setGoals((prev) =>
-      prev.map((g) => {
-        if (g.id === goalId) {
-          const updated = { ...g, currentAmount: g.currentAmount + amount };
-          if (updated.currentAmount >= updated.targetAmount) {
-            setConfettiGoalId(goalId);
-            setTimeout(() => setConfettiGoalId(null), 2000);
-          }
-          return updated;
-        }
-        return g;
-      }),
-    );
+  useEffect(() => {
+    fetchGoals();
+  }, []);
+
+  const fetchGoals = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.getGoals();
+      if (response.success) {
+        setGoals(response.data || []);
+      } else {
+        throw new Error(response.message || "Failed to fetch goals");
+      }
+    } catch (error) {
+      console.error("Failed to fetch goals:", error);
+      setError("Failed to load goals. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddMoney = async (goalId: string, amount: number) => {
+    try {
+      const response = await apiClient.addMoneyToGoal(goalId, amount);
+      if (response.success && response.data) {
+        setGoals((prev) =>
+          prev.map((g) => {
+            if (g.id === goalId) {
+              const updated = response.data!;
+              if (updated.current_amount >= updated.target_amount) {
+                setConfettiGoalId(goalId);
+                setTimeout(() => setConfettiGoalId(null), 2000);
+              }
+              return updated;
+            }
+            return g;
+          }),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to add money to goal:", error);
+      alert("Failed to add money to goal. Please try again.");
+    }
   };
 
   const handleEdit = (goalId: string) => {
     alert("Edit goal " + goalId);
   };
 
-  const handleCreateGoal = () => {
-    setGoals((prev) => [
-      ...prev,
-      {
-        ...newGoal,
-        id: crypto.randomUUID(),
-        targetAmount: Number(newGoal.targetAmount),
-        currentAmount: 0,
-      },
-    ]);
-    setCreating(false);
-    setNewGoal({
-      title: "",
-      targetAmount: 0,
-      currentAmount: 0,
-      targetDate: format(new Date(), "yyyy-MM-dd"),
-      color: "#3B82F6",
-    });
+  const handleCreateGoal = async () => {
+    if (!newGoal.title || !newGoal.targetAmount) return;
+
+    try {
+      const goalData = {
+        title: newGoal.title,
+        target_amount: newGoal.targetAmount,
+        target_date: newGoal.targetDate,
+        color: newGoal.color,
+      };
+
+      const response = await apiClient.createGoal(goalData);
+      if (response.success && response.data) {
+        setGoals((prev) => [...prev, response.data!]);
+        setCreating(false);
+        setNewGoal({
+          title: "",
+          targetAmount: 0,
+          currentAmount: 0,
+          targetDate: format(new Date(), "yyyy-MM-dd"),
+          color: "#3B82F6",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create goal:", error);
+      alert("Failed to create goal. Please try again.");
+    }
   };
 
   const sortedGoals = useMemo(() => {
     return [...goals].sort(
       (a, b) =>
-        b.currentAmount / b.targetAmount - a.currentAmount / a.targetAmount,
+        (b.current_amount || 0) / (b.target_amount || 1) -
+        (a.current_amount || 0) / (a.target_amount || 1),
     );
   }, [goals]);
+
+  if (loading) return <Loader />;
+
+  if (error) {
+    return (
+      <div className="min-h-screen dark:bg-neutral-950 px-2 sm:px-4 lg:px-12 py-8 pb-28">
+        <div className="max-w-full sm:max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">{error}</p>
+            <button
+              onClick={fetchGoals}
+              className="mt-2 text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen dark:bg-neutral-950 px-2 sm:px-4 lg:px-12 py-8 pb-28">
@@ -133,15 +178,23 @@ const GoalPageLayout = () => {
           {/* Goals Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {sortedGoals.map((goal) => {
+              console.log(goal);
               const progress = Math.min(
-                (goal.currentAmount / goal.targetAmount) * 100,
+                ((goal.current_amount || 0) / (goal.target_amount || 1)) * 100,
                 100,
               ).toFixed(0);
 
               return (
                 <div key={goal.id} className="relative">
                   <GoalCard
-                    goal={goal}
+                    goal={{
+                      id: goal.id,
+                      title: goal.title,
+                      targetAmount: goal.target_amount,
+                      currentAmount: goal.current_amount || 0,
+                      targetDate: goal.target_date,
+                      color: goal.color || "#3B82F6",
+                    }}
                     onAddMoney={handleAddMoney}
                     onEdit={handleEdit}
                   />
@@ -154,6 +207,21 @@ const GoalPageLayout = () => {
                 </div>
               );
             })}
+
+            {goals.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-12">
+                <div className="text-xl font-semibold mb-2">No goals yet</div>
+                <div className="text-muted-foreground text-sm mb-4">
+                  Start by creating your first goal!
+                </div>
+                <button
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold"
+                  onClick={() => setCreating(true)}
+                >
+                  + Create Your First Goal
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -9,13 +9,15 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api";
 
-const EXPENSE_CATEGORIES = [
-  { label: "Food", icon: "🍔" },
-  { label: "Transport", icon: "🚌" },
-  { label: "Rent", icon: "🏠" },
-];
-const INCOME_CATEGORIES = [{ label: "Salary", icon: "💲" }];
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  type: "income" | "expense";
+}
 
 const NewPage = () => {
   const [mode, setMode] = useState<"expense" | "income">("expense");
@@ -27,24 +29,39 @@ const NewPage = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [recurring, setRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     amountInputRef.current?.focus();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
     setCategory("");
+    fetchCategories();
   }, [mode]);
 
-  const categories =
-    mode === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await apiClient.getCategories(mode);
+      if (response.success) {
+        setCategories(response.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const filteredCategories = categorySearch
     ? categories.filter((c) =>
-        c.label.toLowerCase().includes(categorySearch.toLowerCase()),
+        c.name.toLowerCase().includes(categorySearch.toLowerCase()),
       )
     : categories;
 
@@ -55,12 +72,47 @@ const NewPage = () => {
     setAmount(val);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!amount || Number(amount) === 0) return;
-    setLoading(true);
-    setTimeout(() => {
+    if (!category) {
+      alert("Please select a category");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const transactionData = {
+        amount: parseFloat(amount),
+        type: mode,
+        category_name: category,
+        description: description.trim() || undefined,
+        date,
+        is_recurring: recurring,
+        recurring_frequency: recurring ? ("monthly" as const) : undefined,
+      };
+
+      const response = await apiClient.createTransaction(transactionData);
+
+      if (response.success) {
+        setAmount("");
+        setDescription("");
+        setCategory("");
+        setCategorySearch("");
+        setRecurring(false);
+        setShowAdvanced(false);
+        setDate(format(new Date(), "yyyy-MM-dd"));
+
+        alert("Transaction saved successfully!");
+      } else {
+        throw new Error(response.message || "Failed to save transaction");
+      }
+    } catch (error) {
+      console.error("Failed to save transaction:", error);
+      alert("Failed to save transaction. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   useEffect(() => {
@@ -69,7 +121,7 @@ const NewPage = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [amount]);
+  }, [amount, category]);
 
   const activeColor = mode === "expense" ? "bg-red-500" : "bg-green-500";
   const saveBtnColor =
@@ -190,20 +242,33 @@ const NewPage = () => {
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 min-w-0">
                 {filteredCategories.map((cat) => (
                   <button
-                    key={cat.label}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setCategory(cat.label)}
+                    onClick={() => setCategory(cat.name)}
                     className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all min-w-22.5 ${
-                      category === cat.label
+                      category === cat.name
                         ? "bg-blue-600 text-white border-blue-600 scale-105"
                         : "bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700"
                     }`}
                   >
                     <span className="text-2xl mb-1">{cat.icon}</span>
-                    <span className="text-xs font-medium">{cat.label}</span>
+                    <span className="text-xs font-medium">{cat.name}</span>
                   </button>
                 ))}
               </div>
+
+              {categoriesLoading && (
+                <p className="text-center text-zinc-500 text-sm mt-4">
+                  Loading categories...
+                </p>
+              )}
+
+              {filteredCategories.length === 0 && !categoriesLoading && (
+                <p className="text-center text-zinc-500 text-sm mt-4">
+                  No categories found.{" "}
+                  {categorySearch && `Try a different search term.`}
+                </p>
+              )}
             </div>
 
             <input

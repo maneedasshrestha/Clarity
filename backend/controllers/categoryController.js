@@ -1,4 +1,4 @@
-const { getCategories, supabase } = require("../services/supabaseService");
+const { getCategories, supabase, getAuthenticatedClient } = require("../services/supabaseService");
 const { validationResult } = require("express-validator");
 
 // @desc    Get user categories
@@ -38,7 +38,9 @@ const createCategory = async (req, res, next) => {
     const { name, type, icon = "📊", color = "#3B82F6" } = req.body;
 
     // Check if category already exists for this user
-    const { data: existingCategories } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: existingCategories } = await authClient
       .from("categories")
       .select("*")
       .eq("user_id", req.userId)
@@ -52,7 +54,7 @@ const createCategory = async (req, res, next) => {
       });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await authClient
       .from("categories")
       .insert({
         user_id: req.userId,
@@ -86,7 +88,9 @@ const updateCategory = async (req, res, next) => {
     const { name, icon, color } = req.body;
 
     // Verify category belongs to user and is not default
-    const { data: existingCategory, error: fetchError } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: existingCategory, error: fetchError } = await authClient
       .from("categories")
       .select("*")
       .eq("id", id)
@@ -101,7 +105,7 @@ const updateCategory = async (req, res, next) => {
       });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await authClient
       .from("categories")
       .update({
         ...(name && { name: name.trim() }),
@@ -133,7 +137,9 @@ const deleteCategory = async (req, res, next) => {
     const { id } = req.params;
 
     // Check if category is being used in transactions
-    const { data: transactions } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: transactions } = await authClient
       .from("transactions")
       .select("id")
       .eq("category_id", id)
@@ -147,7 +153,7 @@ const deleteCategory = async (req, res, next) => {
       });
     }
 
-    const { error } = await supabase
+    const { error } = await authClient
       .from("categories")
       .delete()
       .eq("id", id)
@@ -176,7 +182,9 @@ const getCategoryStats = async (req, res, next) => {
     const start = startDate || "2020-01-01";
     const end = endDate || new Date().toISOString().split("T")[0];
 
-    const { data, error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data, error } = await authClient
       .from("transactions")
       .select("amount, date")
       .eq("category_id", id)

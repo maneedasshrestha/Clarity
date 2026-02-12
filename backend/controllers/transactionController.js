@@ -2,6 +2,7 @@ const {
   getTransactions,
   createTransaction,
   supabase,
+  getAuthenticatedClient,
 } = require("../services/supabaseService");
 const { validationResult } = require("express-validator");
 
@@ -37,8 +38,9 @@ const getUserTransactions = async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
     const transactions = await getTransactions(req.userId, filters, token);
 
-    // Get total count for pagination
-    const { count, error: countError } = await supabase
+    // Get total count for pagination - use authenticated client for RLS compliance
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { count, error: countError } = await authClient
       .from("transactions")
       .select("*", { count: "exact", head: true })
       .eq("user_id", req.userId);
@@ -127,7 +129,9 @@ const updateTransaction = async (req, res, next) => {
     const { amount, type, category_name, description, date } = req.body;
 
     // Verify transaction belongs to user
-    const { data: existingTransaction, error: fetchError } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data: existingTransaction, error: fetchError } = await authClient
       .from("transactions")
       .select("*")
       .eq("id", id)
@@ -144,7 +148,7 @@ const updateTransaction = async (req, res, next) => {
     const transactionAmount =
       type === "expense" ? -Math.abs(amount) : Math.abs(amount);
 
-    const { data, error } = await supabase
+    const { data, error } = await authClient
       .from("transactions")
       .update({
         amount: transactionAmount,
@@ -178,7 +182,9 @@ const deleteTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const { error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { error } = await authClient
       .from("transactions")
       .delete()
       .eq("id", id)
@@ -205,7 +211,9 @@ const getTransactionSummary = async (req, res, next) => {
     const start = startDate || "2020-01-01";
     const end = endDate || new Date().toISOString().split("T")[0];
 
-    const { data, error } = await supabase
+    const token = req.headers.authorization?.split(" ")[1];
+    const authClient = token ? getAuthenticatedClient(token) : supabase;
+    const { data, error } = await authClient
       .from("transactions")
       .select("amount, type, date, category_name")
       .eq("user_id", req.userId)

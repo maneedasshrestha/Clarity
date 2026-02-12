@@ -1,36 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import BalanceCard from "@/components/BalanceCard";
 import Loader from "@/components/Loader";
-
-const transactions = [
-  {
-    id: 1,
-    description: "Starbucks",
-    category: "Coffee",
-    amount: -5.5,
-    type: "expense",
-    date: "2026-02-11T09:30:00",
-  },
-  {
-    id: 2,
-    description: "Salary",
-    category: "Income",
-    amount: 2500,
-    type: "income",
-    date: "2026-02-10T14:00:00",
-  },
-  {
-    id: 3,
-    description: "Netflix",
-    category: "Entertainment",
-    amount: -15.99,
-    type: "expense",
-    date: "2026-02-09T19:30:00",
-  },
-];
+import { apiClient, Transaction } from "@/lib/api";
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -39,16 +13,15 @@ const FILTERS = [
   { label: "This Month", value: "month" },
 ];
 
-function groupByDate(transactions: any[]) {
-  const groups: { [key: string]: any[] } = {};
+function groupByDate(transactions: Transaction[]) {
+  const groups: { [key: string]: Transaction[] } = {};
   transactions.forEach((tx) => {
-    const dateObj = new Date(tx.date);
+    const dateObj = new Date(tx.created_at);
     const label = dateObj.toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-
     if (!groups[label]) groups[label] = [];
     groups[label].push(tx);
   });
@@ -58,7 +31,31 @@ function groupByDate(transactions: any[]) {
 const WalletPageAnalytics = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.getTransactions({});
+      if (response.success) {
+        setTransactions(response.data || []);
+      } else {
+        throw new Error(response.message || "Failed to fetch transactions");
+      }
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
+      setError("Failed to load transactions. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     let txs = transactions;
@@ -69,24 +66,42 @@ const WalletPageAnalytics = () => {
       const now = new Date();
       txs = txs.filter(
         (t) =>
-          new Date(t.date).getMonth() === now.getMonth() &&
-          new Date(t.date).getFullYear() === now.getFullYear(),
+          new Date(t.created_at).getMonth() === now.getMonth() &&
+          new Date(t.created_at).getFullYear() === now.getFullYear(),
       );
     }
 
     if (search.trim()) {
       txs = txs.filter(
         (t) =>
-          t.description.toLowerCase().includes(search.toLowerCase()) ||
-          t.category.toLowerCase().includes(search.toLowerCase()),
+          t.description?.toLowerCase().includes(search.toLowerCase()) ||
+          t.category_name?.toLowerCase().includes(search.toLowerCase()),
       );
     }
 
     return txs;
-  }, [search, filter]);
+  }, [search, filter, transactions]);
 
   const totalBalance = filtered.reduce((acc, t) => acc + t.amount, 0);
   const grouped = groupByDate(filtered);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background px-4 lg:px-12 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">{error}</p>
+            <button
+              onClick={fetchTransactions}
+              className="mt-2 text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background px-4 lg:px-12 py-8">
@@ -150,7 +165,7 @@ const WalletPageAnalytics = () => {
           ) : (
             Object.entries(grouped).map(([date, txs]) => (
               <div key={date} className="space-y-4">
-                {txs.map((tx: any) => (
+                {txs.map((tx: Transaction) => (
                   <div
                     key={tx.id}
                     className="flex items-center gap-4 bg-card rounded-2xl p-5 shadow-sm border border-border hover:shadow-md transition-all"
@@ -158,13 +173,13 @@ const WalletPageAnalytics = () => {
                     {/* Text */}
                     <div className="flex-1">
                       <div className="font-semibold text-lg">
-                        {tx.description}
+                        {tx.description || "No description"}
                       </div>
                       <div className="text-muted-foreground text-sm">
-                        {tx.category}
+                        {tx.category_name}
                       </div>
                       <div className="text-muted-foreground text-sm">
-                        {tx.date}
+                        {new Date(tx.created_at).toLocaleDateString()}
                       </div>
                     </div>
 

@@ -6,8 +6,36 @@ import { MonthPicker } from "../ui/monthpicker";
 import { cn } from "@/lib/utils";
 import React from "react";
 
-export default function MonthPickerButton() {
-  const [date, setDate] = React.useState<Date>(new Date());
+interface MonthPickerButtonProps {
+  onMonthChange?: (month: number, year: number) => void;
+  selectedMonth?: number;
+  selectedYear?: number;
+}
+
+export default function MonthPickerButton({
+  onMonthChange,
+  selectedMonth,
+  selectedYear,
+}: MonthPickerButtonProps) {
+  const currentMonth = selectedMonth || new Date().getMonth() + 1;
+  const currentYear = selectedYear || new Date().getFullYear();
+
+  const [date, setDate] = React.useState<Date>(
+    new Date(currentYear, currentMonth - 1),
+  );
+
+  React.useEffect(() => {
+    setDate(new Date(currentYear, currentMonth - 1));
+  }, [currentMonth, currentYear]);
+
+  const handleMonthSelect = (newDate: Date) => {
+    setDate(newDate);
+    if (onMonthChange) {
+      const month = newDate.getMonth() + 1; // Convert to 1-based month
+      const year = newDate.getFullYear();
+      onMonthChange(month, year);
+    }
+  };
 
   return (
     <Popover>
@@ -24,7 +52,7 @@ export default function MonthPickerButton() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <MonthPicker onMonthSelect={setDate} selectedMonth={date} />
+        <MonthPicker onMonthSelect={handleMonthSelect} selectedMonth={date} />
       </PopoverContent>
     </Popover>
   );
