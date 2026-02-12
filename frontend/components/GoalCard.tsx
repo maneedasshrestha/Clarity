@@ -40,7 +40,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       <div className="flex flex-col items-center gap-1">
         <div className="font-bold text-lg text-center">{goal.title}</div>
         <div className="text-xs text-muted-foreground">
-          by {format(new Date(goal.targetDate), "MMM yyyy")}
+          by {(() => {
+            try {
+              const d = new Date(goal.targetDate);
+              return isNaN(d.getTime()) ? "No target date" : format(d, "MMM yyyy");
+            } catch {
+              return "No target date";
+            }
+          })()}
         </div>
       </div>
       <div className="w-full flex flex-col gap-1">
@@ -48,14 +55,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
           <div
             className={`h-full rounded-full transition-all duration-500 ${progress >= 0.9 ? "bg-linear-to-r from-yellow-400 to-green-400" : ""}`}
             style={{
-              width: `${progress * 100}%`,
+              width: `${(progress || 0) * 100}%`,
               background: progress < 0.9 ? goal.color : undefined,
             }}
           />
         </div>
         <div className="text-xs font-semibold text-center mt-1">
-          रु{goal.currentAmount.toLocaleString()} / रु
-          {goal.targetAmount.toLocaleString()} ({Math.round(progress * 100)}%)
+          रु{(goal.currentAmount || 0).toLocaleString()} / रु
+          {(goal.targetAmount || 0).toLocaleString()} ({Math.round((progress || 0) * 100)}%)
         </div>
       </div>
       <div className="flex justify-center mt-2">
@@ -116,6 +123,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 }
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && addAmount && Number(addAmount) > 0) {
+                    e.preventDefault();
                     onAddMoney(goal.id, Number(addAmount));
                     setShowAdd(false);
                     setAddAmount("");
@@ -125,7 +133,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               <div className="flex flex-wrap gap-2 mt-1 w-full">
                 {[1000, 5000, 10000].map((amt) => (
                   <button
-                    key={amt}
+                    key={`amount-${amt}`}
                     type="button"
                     className={`px-3 py-1 rounded-lg border text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-primary-400 dark:border-neutral-700 border-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-green-100 dark:hover:bg-green-900 ${addAmount === amt.toString() ? "ring-2 ring-green-400 border-green-400" : ""}`}
                     style={{ minWidth: 0, flex: "1 1 30%" }}
@@ -138,9 +146,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             </div>
             <div className="flex gap-2 mt-2">
               <Button
+                type="button"
                 size="sm"
                 className="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg shadow-sm transition disabled:opacity-60"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   onAddMoney(goal.id, Number(addAmount));
                   setShowAdd(false);
 
@@ -151,6 +161,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 Add
               </Button>
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
                 className="flex-1 rounded-lg border-neutral-300 dark:border-neutral-700"

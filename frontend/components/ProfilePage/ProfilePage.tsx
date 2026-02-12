@@ -18,7 +18,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 }) => {
   return (
     <div
-      className="flex justify-center "
+      className="flex justify-center items-center min-h-full w-full py-8"
       style={{
         background: "var(--background)",
         color: "var(--foreground)",

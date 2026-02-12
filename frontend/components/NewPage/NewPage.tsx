@@ -19,6 +19,12 @@ interface Category {
   type: "income" | "expense";
 }
 
+interface Toast {
+  id: string;
+  message: string;
+  type: "success" | "error" | "warning";
+}
+
 const NewPage = () => {
   const [mode, setMode] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
@@ -34,6 +40,7 @@ const NewPage = () => {
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
     amountInputRef.current?.focus();
@@ -44,6 +51,24 @@ const NewPage = () => {
     setCategory("");
     fetchCategories();
   }, [mode]);
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "warning",
+  ) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const newToast: Toast = { id, message, type };
+    setToasts((prev) => [...prev, newToast]);
+
+    // Auto remove toast after 3 seconds
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3000);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   const fetchCategories = async () => {
     try {
@@ -75,7 +100,7 @@ const NewPage = () => {
   const handleSave = async () => {
     if (!amount || Number(amount) === 0) return;
     if (!category) {
-      alert("Please select a category");
+      showToast("Please select a category", "warning");
       return;
     }
 
@@ -103,13 +128,19 @@ const NewPage = () => {
         setShowAdvanced(false);
         setDate(format(new Date(), "yyyy-MM-dd"));
 
-        alert("Transaction saved successfully!");
+        // Signal that data needs to be refreshed
+        localStorage.setItem("dataRefreshNeeded", "true");
+
+        // Dispatch a custom event to notify other components
+        window.dispatchEvent(new CustomEvent("transactionAdded"));
+
+        showToast("Transaction saved successfully!", "success");
       } else {
         throw new Error(response.message || "Failed to save transaction");
       }
     } catch (error) {
       console.error("Failed to save transaction:", error);
-      alert("Failed to save transaction. Please try again.");
+      showToast("Failed to save transaction. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -133,6 +164,32 @@ const NewPage = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 px-4 md:px-8 lg:px-16 py-8 pb-32">
+      {/* Toast Container */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`px-4 py-3 rounded-lg shadow-lg border flex items-center justify-between min-w-80 animate-in slide-in-from-right duration-300 ${
+              toast.type === "success"
+                ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+                : toast.type === "error"
+                  ? "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
+                  : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{toast.message}</span>
+            </div>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="ml-4 text-current hover:opacity-70 transition-opacity"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="lg:sticky lg:top-24 space-y-12 w-full max-w-100 lg:w-100">

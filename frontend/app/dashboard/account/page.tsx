@@ -25,9 +25,6 @@ function AccountPage() {
   }, []);
 
   if (!user) return <Loader />;
-
-  console.log(user);
-
   return (
     <ProfilePage
       name={user.user_metadata?.name || "Sun Dawg"}

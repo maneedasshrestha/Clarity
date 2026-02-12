@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/api";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface OverviewData {
   totals: {
@@ -38,6 +39,7 @@ const Overview = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [error, setError] = useState<string | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -60,6 +62,51 @@ const Overview = () => {
       fetchOverviewData();
     }
   }, [user, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        fetchOverviewData();
+      }
+    };
+
+    const handleFocus = () => {
+      if (user) {
+        fetchOverviewData();
+      }
+    };
+
+    const handleTransactionAdded = () => {
+      if (user) {
+        fetchOverviewData();
+      }
+    };
+
+    const checkRefreshNeeded = () => {
+      if (localStorage.getItem("dataRefreshNeeded") === "true" && user) {
+        localStorage.removeItem("dataRefreshNeeded");
+        fetchOverviewData();
+      }
+    };
+
+    checkRefreshNeeded();
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("transactionAdded", handleTransactionAdded);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("transactionAdded", handleTransactionAdded);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (user && pathname === "/dashboard/overview") {
+      fetchOverviewData();
+    }
+  }, [pathname, user]);
 
   const fetchOverviewData = async () => {
     try {
@@ -104,7 +151,7 @@ const Overview = () => {
         <div className="text-2xl font-bold">
           Welcome back, {user.user_metadata?.name || "User"}!
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <MonthPickerButton
             onMonthChange={handleMonthChange}
             selectedMonth={selectedMonth}

@@ -127,15 +127,6 @@ export function SignupForm({
                 {error && <div className="text-red-500">{error}</div>}
                 {success && <div className="text-green-500">{success}</div>}
               </Field>
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Or continue with
-              </FieldSeparator>
-              <Field>
-                <Button variant="outline" type="button">
-                  <img src="logos/google.svg" alt="" className="w-5" />
-                  <span>Sign up with Google</span>
-                </Button>
-              </Field>
             </FieldGroup>
           </form>
           <div className="bg-muted relative hidden md:block">

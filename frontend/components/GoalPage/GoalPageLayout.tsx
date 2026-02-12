@@ -6,6 +6,12 @@ import ColorPicker from "@/components/ColorPicker";
 import Loader from "@/components/Loader";
 import { apiClient, Goal } from "@/lib/api";
 
+interface Toast {
+  id: string;
+  message: string;
+  type: "success" | "error" | "warning";
+}
+
 import { format, differenceInDays, parse, addYears } from "date-fns";
 import {
   Popover,
@@ -20,6 +26,7 @@ const GoalPageLayout = () => {
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [newGoal, setNewGoal] = useState({
     title: "",
     targetAmount: 0,
@@ -31,6 +38,24 @@ const GoalPageLayout = () => {
   useEffect(() => {
     fetchGoals();
   }, []);
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "warning",
+  ) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const newToast: Toast = { id, message, type };
+    setToasts((prev) => [...prev, newToast]);
+
+    // Auto remove toast after 3 seconds
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3000);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   const fetchGoals = async () => {
     try {
@@ -51,31 +76,62 @@ const GoalPageLayout = () => {
   };
 
   const handleAddMoney = async (goalId: string, amount: number) => {
+    // 1. Snapshot for potential rollback
+    const originalGoals = [...goals];
+
     try {
+      // 2. Find the goal and calculate optimistic values
+      const goalToUpdate = goals.find((g) => g.id === goalId);
+      if (!goalToUpdate) return;
+
+      const currentAmount = Number(goalToUpdate.current_amount || 0);
+      const targetAmount = Number(goalToUpdate.target_amount || 0);
+      const newAmount = currentAmount + amount;
+
+      // 3. Side effects based on optimistic update (immediate feedback)
+      const wasCompleted = targetAmount > 0 && currentAmount >= targetAmount;
+      const isCompleted = targetAmount > 0 && newAmount >= targetAmount;
+
+      if (!wasCompleted && isCompleted) {
+        setConfettiGoalId(goalId);
+        setTimeout(() => setConfettiGoalId(null), 2000);
+        showToast("Congratulations! Goal completed!", "success");
+      } else {
+        showToast("Money added to goal successfully!", "success");
+      }
+
+      // 4. Update state optimistically
+      setGoals((prev) =>
+        prev.map((g) =>
+          g.id === goalId ? { ...g, current_amount: newAmount } : g,
+        ),
+      );
+
+      // 5. API Call & Reconciliation
       const response = await apiClient.addMoneyToGoal(goalId, amount);
       if (response.success && response.data) {
+        const updated = response.data;
         setGoals((prev) =>
           prev.map((g) => {
             if (g.id === goalId) {
-              const updated = response.data!;
-              if (updated.current_amount >= updated.target_amount) {
-                setConfettiGoalId(goalId);
-                setTimeout(() => setConfettiGoalId(null), 2000);
-              }
-              return updated;
+              return { ...g, ...updated };
             }
             return g;
           }),
         );
+      } else {
+        throw new Error(response.message || "Failed to update goal");
       }
     } catch (error) {
       console.error("Failed to add money to goal:", error);
-      alert("Failed to add money to goal. Please try again.");
+      showToast("Failed to add money. Changes rolled back.", "error");
+      // 6. Rollback state to original
+      setGoals(originalGoals);
     }
   };
 
   const handleEdit = (goalId: string) => {
-    alert("Edit goal " + goalId);
+    showToast("Edit functionality coming soon!", "warning");
   };
 
   const handleCreateGoal = async () => {
@@ -91,7 +147,12 @@ const GoalPageLayout = () => {
 
       const response = await apiClient.createGoal(goalData);
       if (response.success && response.data) {
-        setGoals((prev) => [...prev, response.data!]);
+        setGoals((prev) => {
+          // Prevent duplicates if API returns one that already exists locally
+          const exists = prev.some(g => g.id === response.data!.id);
+          if (exists) return prev;
+          return [...prev, response.data!];
+        });
         setCreating(false);
         setNewGoal({
           title: "",
@@ -103,7 +164,7 @@ const GoalPageLayout = () => {
       }
     } catch (error) {
       console.error("Failed to create goal:", error);
-      alert("Failed to create goal. Please try again.");
+      showToast("Failed to create goal. Please try again.", "error");
     }
   };
 
@@ -137,6 +198,29 @@ const GoalPageLayout = () => {
 
   return (
     <div className="min-h-screen dark:bg-neutral-950 px-2 sm:px-4 lg:px-12 py-8 pb-28">
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`px-4 py-3 rounded-lg shadow-lg border flex items-center justify-between min-w-80 animate-in slide-in-from-right duration-300 ${toast.type === "success"
+              ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+              : toast.type === "error"
+                ? "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
+                : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+              }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{toast.message}</span>
+            </div>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="ml-4 text-current hover:opacity-70 transition-opacity"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
       <div className="max-w-full sm:max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 lg:gap-12">
         {/* ================= LEFT SIDEBAR ================= */}
         <div className="lg:sticky lg:top-24 space-y-8">
@@ -175,17 +259,15 @@ const GoalPageLayout = () => {
             </button>
           </div>
 
-          {/* Goals Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {sortedGoals.map((goal) => {
-              console.log(goal);
+            {sortedGoals.map((goal, index) => {
               const progress = Math.min(
                 ((goal.current_amount || 0) / (goal.target_amount || 1)) * 100,
                 100,
               ).toFixed(0);
 
               return (
-                <div key={goal.id} className="relative">
+                <div key={goal.id || index} className="relative">
                   <GoalCard
                     goal={{
                       id: goal.id,
@@ -199,7 +281,9 @@ const GoalPageLayout = () => {
                     onEdit={handleEdit}
                   />
 
-                  {confettiGoalId === goal.id && <Confetti active />}
+                  {confettiGoalId === goal.id && (
+                    <Confetti key={`confetti-${goal.id}`} active />
+                  )}
 
                   <div className="mt-2 text-xs text-center font-medium text-muted-foreground">
                     {progress}% complete
@@ -209,7 +293,10 @@ const GoalPageLayout = () => {
             })}
 
             {goals.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-12">
+              <div
+                key="empty-state"
+                className="col-span-full flex flex-col items-center justify-center py-12"
+              >
                 <div className="text-xl font-semibold mb-2">No goals yet</div>
                 <div className="text-muted-foreground text-sm mb-4">
                   Start by creating your first goal!
@@ -290,12 +377,16 @@ const GoalPageLayout = () => {
                       type="button"
                       className="px-3 py-2 rounded-lg border w-full text-left"
                     >
-                      {newGoal.targetDate
-                        ? format(
-                            parse(newGoal.targetDate, "yyyy-MM-dd", new Date()),
-                            "PPP",
-                          )
-                        : "Pick a date"}
+                      {(() => {
+                        try {
+                          if (!newGoal.targetDate) return "Pick a date";
+                          const parsedDate = parse(newGoal.targetDate, "yyyy-MM-dd", new Date());
+                          if (isNaN(parsedDate.getTime())) return "Pick a date";
+                          return format(parsedDate, "PPP");
+                        } catch {
+                          return "Pick a date";
+                        }
+                      })()}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="p-0">

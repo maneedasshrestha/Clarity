@@ -43,8 +43,10 @@ if (NODE_ENV === "development") {
   app.use(morgan("combined"));
 }
 
-// Rate limiting
-app.use("/api", generalLimiter);
+// Rate limiting (only in production)
+if (NODE_ENV === "production") {
+  app.use("/api", generalLimiter);
+}
 
 // Health check endpoint
 app.get("/health", (req, res) => {

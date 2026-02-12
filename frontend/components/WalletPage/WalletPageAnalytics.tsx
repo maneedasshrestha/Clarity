@@ -109,9 +109,7 @@ const WalletPageAnalytics = () => {
         <div className="lg:sticky lg:top-24 space-y-8">
           <BalanceCard
             label={search ? `Total for '${search}'` : "Total Balance"}
-            amount={totalBalance.toLocaleString(undefined, {
-              maximumFractionDigits: 2,
-            })}
+            amount={totalBalance}
             varient={totalBalance >= 0 ? "income" : "expense"}
           />
 

@@ -271,24 +271,37 @@ const addMoneyToGoal = async (
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error in addMoneyToGoal:", error);
+      throw error;
+    }
     return data;
   } catch (error) {
-    throw new Error("Failed to add money to goal");
+    console.error("Error in addMoneyToGoal:", error);
+    throw new Error(`Failed to add money to goal: ${error.message || error}`);
   }
 };
 
 // Analytics helper function
 const getUserOverview = async (
   userId,
-  monthDate = new Date(),
+  monthDateString = null,
   userToken = null,
 ) => {
   try {
     const client = userToken ? getAuthenticatedClient(userToken) : supabase;
+    
+    // If no month date string provided, use current month
+    const dateToUse = monthDateString || (() => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      return `${year}-${String(month).padStart(2, '0')}-01`;
+    })();
+    
     const { data, error } = await client.rpc("get_user_overview", {
       user_uuid: userId,
-      month_date: monthDate.toISOString().split("T")[0],
+      month_date: dateToUse,
     });
 
     if (error) throw error;

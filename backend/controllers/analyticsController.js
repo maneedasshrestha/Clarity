@@ -8,20 +8,21 @@ const getDashboardOverview = async (req, res, next) => {
     const targetMonth = month ? parseInt(month) : date.getMonth() + 1;
     const targetYear = year ? parseInt(year) : date.getFullYear();
 
-    const monthDate = new Date(targetYear, targetMonth - 1, 1);
+    // Create date string directly to avoid timezone issues
+    const monthDateString = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
     
     // Calculate previous month for trend comparison
     const previousMonth = targetMonth === 1 ? 12 : targetMonth - 1;
     const previousYear = targetMonth === 1 ? targetYear - 1 : targetYear;
-    const previousMonthDate = new Date(previousYear, previousMonth - 1, 1);
+    const previousMonthDateString = `${previousYear}-${String(previousMonth).padStart(2, '0')}-01`;
 
     const token = req.headers.authorization?.split(" ")[1];
     
     // Fetch current month overview
-    const overview = await getUserOverview(req.userId, monthDate, token);
+    const overview = await getUserOverview(req.userId, monthDateString, token);
     
     // Fetch previous month overview for trend comparison
-    const previousOverview = await getUserOverview(req.userId, previousMonthDate, token);
+    const previousOverview = await getUserOverview(req.userId, previousMonthDateString, token);
 
     // Combine the data
     const responseData = {
@@ -52,19 +53,30 @@ const getSpendingTrends = async (req, res, next) => {
     if (period === "month") {
       const targetYear = year ? parseInt(year) : currentDate.getFullYear();
       const targetMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
-      startDate = new Date(targetYear, targetMonth - 1, 1);
-      endDate = new Date(targetYear, targetMonth, 0); 
+      
+      // Use string format to avoid timezone issues
+      startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+      
+      // Calculate end date - last day of the month
+      const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
+      const nextYear = targetMonth === 12 ? targetYear + 1 : targetYear;
+      const lastDay = new Date(nextYear, nextMonth - 1, 0).getDate();
+      endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      
       groupByFormat = "DD";
     } else if (period === "year") {
       const targetYear = year ? parseInt(year) : currentDate.getFullYear();
-      startDate = new Date(targetYear, 0, 1);
-      endDate = new Date(targetYear, 11, 31);
+      startDate = `${targetYear}-01-01`;
+      endDate = `${targetYear}-12-31`;
       groupByFormat = "MM";
     } else {
       // Last 30 days
-      endDate = new Date();
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      
+      startDate = start.toISOString().split("T")[0];
+      endDate = end.toISOString().split("T")[0];
       groupByFormat = "DD";
     }
 
@@ -74,8 +86,8 @@ const getSpendingTrends = async (req, res, next) => {
       .from("transactions")
       .select("amount, date, type")
       .eq("user_id", req.userId)
-      .gte("date", startDate.toISOString().split("T")[0])
-      .lte("date", endDate.toISOString().split("T")[0])
+      .gte("date", startDate)
+      .lte("date", endDate)
       .order("date");
 
     if (error) throw error;

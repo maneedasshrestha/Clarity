@@ -217,6 +217,7 @@ const addMoneyToGoalHandler = async (req, res, next) => {
       id,
       parseFloat(amount),
       description?.trim() || null,
+      token,
     );
 
     // Get updated goal data
