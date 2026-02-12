@@ -85,6 +85,10 @@ const WalletPageAnalytics = () => {
   const totalBalance = filtered.reduce((acc, t) => acc + t.amount, 0);
   const grouped = groupByDate(filtered);
 
+  if (loading) {
+    return <Loader />;
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-background px-4 lg:px-12 py-8">
@@ -135,11 +139,10 @@ const WalletPageAnalytics = () => {
                 <button
                   key={chip.value}
                   onClick={() => setFilter(chip.value)}
-                  className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                    filter === chip.value
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted text-muted-foreground border-border"
-                  }`}
+                  className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${filter === chip.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground border-border"
+                    }`}
                 >
                   {chip.label}
                 </button>
@@ -148,8 +151,6 @@ const WalletPageAnalytics = () => {
           </div>
 
           <Separator />
-
-          {loading && <Loader />}
 
           {Object.keys(grouped).length === 0 ? (
             <div className="flex flex-col items-center justify-center mt-24">
@@ -183,11 +184,10 @@ const WalletPageAnalytics = () => {
 
                     {/* Amount */}
                     <div
-                      className={`text-lg font-bold ${
-                        tx.type === "expense"
-                          ? "text-red-600"
-                          : "text-green-600"
-                      }`}
+                      className={`text-lg font-bold ${tx.type === "expense"
+                        ? "text-red-600"
+                        : "text-green-600"
+                        }`}
                     >
                       {tx.type === "expense" ? "-" : "+"}रु
                       {Math.abs(tx.amount).toLocaleString(undefined, {
