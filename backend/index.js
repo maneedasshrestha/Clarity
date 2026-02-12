@@ -16,13 +16,14 @@ const goalRoutes = require("./routes/goals");
 const analyticsRoutes = require("./routes/analytics");
 
 const app = express();
-// Trust proxy for Render reverse proxy
+const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || "development";
+
 app.set("trust proxy", 1);
 
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - remove trailing slash from origin for strict matching
 const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 
 app.use(
