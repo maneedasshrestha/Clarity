@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { MoreVertical, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface Goal {
   id: string;
@@ -27,16 +27,10 @@ const getProgressColor = (progress: number, color: string) => {
 export const GoalCard: React.FC<GoalCardProps> = ({
   goal,
   onAddMoney,
-  onEdit,
 }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [addAmount, setAddAmount] = useState("");
   const progress = Math.min(goal.currentAmount / goal.targetAmount, 1);
-  const progressBarColor =
-    progress >= 0.9
-      ? "bg-gradient-to-r from-yellow-400 to-green-400"
-      : goal.color;
-
   return (
     <Card
       className="relative p-5 flex flex-col gap-3 border-2"
@@ -82,7 +76,6 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               className="absolute top-3 right-3 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
               aria-label="Close"
@@ -100,7 +93,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               </svg>
             </button>
             <div className="font-bold text-lg text-center mb-1">
-              Add to Fund
+              Add to Goal
             </div>
             <div className="flex flex-col gap-1">
               <label
@@ -129,7 +122,6 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                   }
                 }}
               />
-              {/* Quick add buttons */}
               <div className="flex flex-wrap gap-2 mt-1 w-full">
                 {[1000, 5000, 10000].map((amt) => (
                   <button
@@ -151,6 +143,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 onClick={() => {
                   onAddMoney(goal.id, Number(addAmount));
                   setShowAdd(false);
+
                   setAddAmount("");
                 }}
                 disabled={!addAmount || Number(addAmount) <= 0}

@@ -1,12 +1,40 @@
 "use client";
 import BalanceCard from "@/components/BalanceCard";
+import CategoryBreakdownChart from "@/components/Charts/CategoryBreakdownChart";
+import SpendingTrendChart from "@/components/Charts/SpendingTrendChart";
+import Loader from "@/components/Loader";
 import MonthPickerButton from "@/components/MonthPicker/MonthPicker";
+import { supabase } from "@/lib/supabaseClient";
+import { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 
 const Overview = () => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      },
+    );
+
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (!user) return <Loader />;
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 bg-background  ">
       <div className="flex justify-between items-center mb-4">
-        <div className="text-2xl font-bold">Welcome back, User!</div>
+        <div className="text-2xl font-bold">
+          Welcome back, {user.user_metadata?.name || "Sun Dawg"}!
+        </div>
         <div className="flex items-center">
           <MonthPickerButton />
         </div>
@@ -19,13 +47,11 @@ const Overview = () => {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-4">
-        {/* Spending Trend Chart Placeholder */}
-        <div className="flex-1 bg-card rounded-lg shadow p-4 min-h-62.5">
-          Spending Trend Chart
+        <div className="flex-1 bg-card rounded-lg shadow p-4 min-h-62.5 glassmorphism">
+          <SpendingTrendChart />
         </div>
-        {/* Category Breakdown Chart Placeholder */}
-        <div className="flex-1 bg-card rounded-lg shadow p-4 min-h-62.5">
-          Category Breakdown Chart
+        <div className="flex-1 bg-card rounded-lg shadow p-4 min-h-62.5 glassmorphism">
+          <CategoryBreakdownChart />
         </div>
       </div>
     </div>

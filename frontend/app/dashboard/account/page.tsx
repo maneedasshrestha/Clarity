@@ -3,7 +3,7 @@ import Loader from "@/components/Loader";
 import ProfilePage from "@/components/ProfilePage/ProfilePage";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 function AccountPage() {
   const [user, setUser] = useState<User | null>(null);
