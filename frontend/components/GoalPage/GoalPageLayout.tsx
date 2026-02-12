@@ -148,8 +148,7 @@ const GoalPageLayout = () => {
       const response = await apiClient.createGoal(goalData);
       if (response.success && response.data) {
         setGoals((prev) => {
-          // Prevent duplicates if API returns one that already exists locally
-          const exists = prev.some(g => g.id === response.data!.id);
+          const exists = prev.some((g) => g.id === response.data!.id);
           if (exists) return prev;
           return [...prev, response.data!];
         });
@@ -202,12 +201,13 @@ const GoalPageLayout = () => {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-4 py-3 rounded-lg shadow-lg border flex items-center justify-between min-w-80 animate-in slide-in-from-right duration-300 ${toast.type === "success"
-              ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
-              : toast.type === "error"
-                ? "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
-                : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-              }`}
+            className={`px-4 py-3 rounded-lg shadow-lg border flex items-center justify-between min-w-80 animate-in slide-in-from-right duration-300 ${
+              toast.type === "success"
+                ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+                : toast.type === "error"
+                  ? "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
+                  : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+            }`}
           >
             <div className="flex items-center gap-2">
               <span className="font-medium">{toast.message}</span>
@@ -380,7 +380,11 @@ const GoalPageLayout = () => {
                       {(() => {
                         try {
                           if (!newGoal.targetDate) return "Pick a date";
-                          const parsedDate = parse(newGoal.targetDate, "yyyy-MM-dd", new Date());
+                          const parsedDate = parse(
+                            newGoal.targetDate,
+                            "yyyy-MM-dd",
+                            new Date(),
+                          );
                           if (isNaN(parsedDate.getTime())) return "Pick a date";
                           return format(parsedDate, "PPP");
                         } catch {
