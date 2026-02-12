@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 
-const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://your-api-domain.com/api' 
+const API_BASE = process.env.NODE_ENV === 'production'
+  ? 'https://clarity-6sew.onrender.com/api'
   : 'http://localhost:5000/api';
 
 // Type definitions
@@ -65,12 +65,12 @@ class ApiClient {
   }
 
   private async request<T = any>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
       const token = await this.getAuthToken();
-      
+
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers: {
